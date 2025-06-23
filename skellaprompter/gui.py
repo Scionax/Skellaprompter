@@ -110,11 +110,11 @@ class MainWindow(QMainWindow):
         """Rebuild the navigation tree from the prompts directory."""
         self.prompt_tree.clear()
         prompts_root = self.base_path / "prompts"
-        for path in sorted(prompts_root.rglob("*")):
+        for path in sorted(prompts_root.rglob("*.md")):
             if path.is_file():
                 rel = path.relative_to(prompts_root)
                 parent = self._ensure_parents(rel.parts[:-1])
-                item = QTreeWidgetItem([rel.name])
+                item = QTreeWidgetItem([rel.stem])
                 item.setData(0, Qt.UserRole, path)
                 parent.addChild(item)
 

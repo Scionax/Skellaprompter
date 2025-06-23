@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import (
     QFormLayout,
     QLineEdit,
     QMainWindow,
+    QMessageBox,
     QPlainTextEdit,
     QPushButton,
     QScrollArea,
@@ -108,6 +109,22 @@ class MainWindow(QMainWindow):
         file_menu.addSeparator()
         quit_action = file_menu.addAction("Quit")
         quit_action.triggered.connect(self.close)
+
+        help_menu = self.menuBar().addMenu("Help")
+        vars_action = help_menu.addAction("Variables")
+        vars_action.triggered.connect(self.show_variable_help)
+
+    def show_variable_help(self) -> None:
+        """Display a dialog describing variable syntax."""
+        text = (
+            "Template variable syntax:\n\n"
+            "{{name}}  - global variable from vars/<name>.yaml\n"
+            "<<name>>  - prompt-local variable from prompt-vars/<prompt>/<name>.yaml\n"
+            "[[name]]  - short free text\n"
+            "[[[name]]] - long free text\n\n"
+            "A default value can be specified with a pipe, e.g. {{Character|John}}"
+        )
+        QMessageBox.information(self, "Variable Syntax", text)
 
     def resync(self) -> None:
         """Rebuild the navigation tree from the prompts directory."""

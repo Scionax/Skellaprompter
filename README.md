@@ -8,3 +8,5 @@ The repository currently includes a small backend written in Python. Run it with
 python main.py --debug
 ```
 The script ensures required directories exist (`prompts`, `vars`, and `prompt-vars`) and then launches the GUI.
+
+Only Markdown files within the `prompts` directory appear in the navigation tree. File extensions are stripped so, for example, "Hunters.md" is shown as "Hunters".

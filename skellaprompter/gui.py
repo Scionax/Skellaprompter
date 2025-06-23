@@ -35,10 +35,13 @@ TOKEN_RE = re.compile(
 class Variable:
     """Representation of a template variable."""
 
-    def __init__(self, kind: str, name: str, file_path: Path | None):
+    def __init__(
+        self, kind: str, name: str, file_path: Path | None, default: str | None = None
+    ) -> None:
         self.kind = kind
         self.name = name
         self.file_path = file_path
+        self.default = default
         self.widget: QWidget | None = None
 
 
@@ -160,34 +163,43 @@ class MainWindow(QMainWindow):
 
         for match in TOKEN_RE.finditer(self.template_text):
             kind: str
-            name: str
-            file_path: Path | None = None
+            raw: str
             if match.group("gd"):
                 kind = "global"
-                name = match.group("gd")
-                file_path = self.base_path / "vars" / f"{name}.yaml"
+                raw = match.group("gd")
             elif match.group("ld"):
                 kind = "local"
-                name = match.group("ld")
-                file_path = local_base / f"{name}.yaml"
+                raw = match.group("ld")
             elif match.group("short"):
                 kind = "short"
-                name = match.group("short")
+                raw = match.group("short")
             else:
                 kind = "long"
-                name = match.group("long")
+                raw = match.group("long")
+
+            name, default = (raw.split("|", 1) + [None])[:2]
+
+            file_path: Path | None = None
+            if kind == "global":
+                file_path = self.base_path / "vars" / f"{name}.yaml"
+            elif kind == "local":
+                file_path = local_base / f"{name}.yaml"
 
             if name in self.variables:
                 continue
 
-            var = Variable(kind, name, file_path)
+            var = Variable(kind, name, file_path, default)
             self.variables[name] = var
 
             if kind in {"global", "local"}:
                 combo = QComboBox()
-                options = self._load_options(file_path)
+                options = self._load_options(file_path, default)
                 if options:
                     combo.addItems([t for t, _ in options])
+                    if default:
+                        values = [v for _, v in options]
+                        if default in values:
+                            combo.setCurrentIndex(values.index(default))
                     combo.currentIndexChanged.connect(self.render_prompt)
                 else:
                     combo.addItem("Missing file")
@@ -196,17 +208,23 @@ class MainWindow(QMainWindow):
                 self.vars_form.addRow(name, combo)
             elif kind == "short":
                 line = QLineEdit()
+                if default:
+                    line.setText(default)
                 line.textChanged.connect(self.render_prompt)
                 var.widget = line
                 self.vars_form.addRow(name, line)
             else:
                 text = QTextEdit()
                 text.setFixedHeight(80)
+                if default:
+                    text.setPlainText(default)
                 text.textChanged.connect(self.render_prompt)
                 var.widget = text
                 self.vars_form.addRow(name, text)
 
-    def _load_options(self, file_path: Path | None) -> list[tuple[str, str]]:
+    def _load_options(
+        self, file_path: Path | None, default: str | None = None
+    ) -> list[tuple[str, str]]:
         if not file_path or not file_path.exists():
             return []
         try:
@@ -218,6 +236,8 @@ class MainWindow(QMainWindow):
             title = str(item.get("title", ""))
             value = str(item.get("value", title))
             result.append((title, value))
+        if default and default not in [v for _, v in result]:
+            result.insert(0, (default, default))
         return result
 
     # ------------------------------------------------------------------
@@ -244,13 +264,17 @@ class MainWindow(QMainWindow):
         if not var or not var.widget:
             return ""
         if isinstance(var.widget, QComboBox):
-            options = self._load_options(var.file_path)
+            options = self._load_options(var.file_path, var.default)
             idx = var.widget.currentIndex()
-            return options[idx][1] if idx >= 0 and idx < len(options) else ""
+            if 0 <= idx < len(options):
+                return options[idx][1]
+            return var.default or ""
         if isinstance(var.widget, QLineEdit):
-            return var.widget.text()
+            text = var.widget.text()
+            return text if text else (var.default or "")
         if isinstance(var.widget, QTextEdit):
-            return var.widget.toPlainText()
+            text = var.widget.toPlainText()
+            return text if text else (var.default or "")
         return ""
 
     def copy_prompt(self) -> None:

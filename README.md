@@ -11,6 +11,10 @@ The script ensures required directories exist (`prompts`, `vars`, and `prompt-va
 
 Only Markdown files within the `prompts` directory appear in the navigation tree. File extensions are stripped so, for example, "Hunters.md" is shown as "Hunters".
 
+You can edit a template directly from the **Template** tab. Use **File → Save**
+to write the changes to disk. Saving automatically refreshes the list of
+variables extracted from the template.
+
 ## Variable syntax
 
 Template variables are marked using one of four delimiters:

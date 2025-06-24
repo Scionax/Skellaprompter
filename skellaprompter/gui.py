@@ -62,7 +62,7 @@ class MainWindow(QMainWindow):
         self.prompt_edit = QPlainTextEdit()
         self.prompt_edit.setReadOnly(True)
         self.template_edit = QPlainTextEdit()
-        self.template_edit.setReadOnly(True)
+        self.template_edit.setReadOnly(False)
 
         self.tabs = QTabWidget()
         self.tabs.addTab(self.prompt_edit, "Prompt")
@@ -104,6 +104,8 @@ class MainWindow(QMainWindow):
 
     def build_menu(self) -> None:
         file_menu = self.menuBar().addMenu("File")
+        save_action = file_menu.addAction("Save")
+        save_action.triggered.connect(self.save_prompt)
         resync_action = file_menu.addAction("Resync")
         resync_action.triggered.connect(self.resync)
         file_menu.addSeparator()
@@ -293,6 +295,18 @@ class MainWindow(QMainWindow):
             text = var.widget.toPlainText()
             return text if text else (var.default or "")
         return ""
+
+    def save_prompt(self) -> None:
+        """Save the template to disk and resync variables."""
+        if not self.template_path:
+            return
+        text = self.template_edit.toPlainText()
+        self.template_path.write_text(text, encoding="utf-8")
+        self.template_text = text
+        self.resync()
+        self.build_variables()
+        self.render_prompt()
+        self.statusBar().showMessage("Saved", 2000)
 
     def copy_prompt(self) -> None:
         text = self.prompt_edit.toPlainText()
